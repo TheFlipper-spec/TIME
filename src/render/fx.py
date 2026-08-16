@@ -16,6 +16,7 @@ class Particles:
         self.count = count
         self.parts: list[dict] = []
         self._rng = random.Random(42)
+        self.reset(pygame.Rect(0, 0, DESIGN_W, DESIGN_H))
 
     def reset(self, area: pygame.Rect) -> None:
         self.parts = []

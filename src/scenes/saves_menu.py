@@ -35,9 +35,10 @@ class SavesScene(Scene):
         y = 170
         from ..config import MAX_SAVE_SLOTS
         if self.mode == "save":
-            # save mode: show all slots, empty ones as placeholders
+            # save mode: show the 6 player slots, empty ones as placeholders
+            # (the autosave row is load-only, so it can't be overwritten here)
             existing = {e["slot"]: e for e in self.entries if not e["autosave"]}
-            shown: list = [e for e in self.entries if e["autosave"]]
+            shown: list = []
             for i in range(1, MAX_SAVE_SLOTS + 1):
                 shown.append(existing.get(i, {"slot": i, "empty": True, "meta": None}))
         else:
@@ -105,10 +106,7 @@ class SavesScene(Scene):
 
     def on_delete(self, entry):
         def cb():
-            if entry.get("autosave"):
-                delete_save(entry["path"])
-            else:
-                delete_save(entry["path"])
+            delete_save(entry["path"])
             play("back")
             self.notice = self.app.tr.t("saves.deleted")
             self.rebuild()
@@ -142,7 +140,7 @@ class SavesScene(Scene):
         title = tr.t("saves.title") if self.mode == "load" else tr.t("pause.save_game")
         draw_text(surface, title, (640, 90), size=44, kind="serif_bold",
                   color=(240, 240, 245), align="center", glow=(212, 175, 55), glow_radius=2)
-        if not self.entries:
+        if not self.entries and self.mode == "load":
             draw_text(surface, tr.t("saves.empty"), (640, 300), size=30,
                       align="center", color=(200, 205, 220))
             draw_wrapped(surface, tr.t("saves.empty_hint"), (640, 350), 600,

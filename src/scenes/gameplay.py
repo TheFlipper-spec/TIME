@@ -15,7 +15,8 @@ from ..game import witnesses
 from ..game.clues import get as get_clue
 from ..game.gamestate import GameState
 from ..game.story import deliver_postcards, update_stage
-from ..game.time import fmt_clock, fmt_date_short, game_minutes_from_real, world_datetime
+from ..game.time import (fmt_clock, fmt_date_short, game_date,
+                         game_minutes_from_real, world_datetime)
 from ..render.fx import Particles, ScreenFade
 from ..render.sprites import SpriteBank
 from ..render.text import draw_text
@@ -72,10 +73,12 @@ class GameplayScene(Scene):
         if fresh:
             self.state.current_map = "town"
             door = (10, 11)  # Mike's house door
-            self.state.pos = (door[0] * TILE + TILE // 2, (door[1] + 1) * TILE - 6)
+            # Spawn one tile south of the door (on the walkable grass), not on
+            # the solid door tile — otherwise the player is stuck on spawn.
+            self.state.pos = (door[0] * TILE + TILE // 2, (door[1] + 1) * TILE + TILE // 2)
             self.state.facing = "down"
         elif not self.state.pos:
-            self.state.pos = (10 * TILE + TILE // 2, 12 * TILE)
+            self.state.pos = (10 * TILE + TILE // 2, 12 * TILE + TILE // 2)
 
         self.camera = Camera(*self.world.map_size(self.state.current_map))
         self.camera.snap(*self._player_center())
@@ -354,7 +357,7 @@ class GameplayScene(Scene):
             d = math.hypot(px - cx, py - cy)
             if d < INTERACTION_DIST * TILE:
                 items.append({"type": "prop", "prop": prop, "d": d})
-        hour = self.state.minutes / 60.0
+        hour = now.hour + now.minute / 60.0
         for nid in npc_on_map(self.state, map_id, hour):
             pos = NPC_DATA[nid].pos_at(hour, map_id)
             if pos is None:
@@ -471,7 +474,9 @@ class GameplayScene(Scene):
         else:
             turn = fn(state, self)
         from .overlays import DialogueScene
-        self.pause()
+        # DialogueScene pauses the gameplay on enter (OverlayScene.on_enter) and
+        # resumes it on exit, so no explicit pause() here — that would double
+        # the counter and soft-lock the game after closing the dialogue.
         self.app.push(DialogueScene(self.app, nid, turn))
 
     def _enter_interior(self, tile: tuple[int, int]) -> None:
@@ -479,6 +484,7 @@ class GameplayScene(Scene):
         if interior is None:
             return
         play("door")
+        self.state.flags["last_door_tile"] = tile
         self.state.current_map = interior
         entry = self.world.interiors[interior].enter_tile
         self.state.pos = (entry[0] * TILE + TILE // 2, entry[1] * TILE + TILE // 2)
@@ -488,7 +494,9 @@ class GameplayScene(Scene):
         play("door")
         tile = self.state.flags.get("last_door_tile", (10, 11))
         self.state.current_map = "town"
-        self.state.pos = (tile[0] * TILE + TILE // 2, (tile[1] + 1) * TILE - 6)
+        # Place the player just south of the door (walkable tile), not on the
+        # solid door tile.
+        self.state.pos = (tile[0] * TILE + TILE // 2, (tile[1] + 1) * TILE + TILE // 2)
         self._enter_map("town")
         if not self.state.flags.get("town_seen"):
             self.state.flags["town_seen"] = True
@@ -685,6 +693,8 @@ class GameplayScene(Scene):
         self.world.draw(surface, self.camera, state.current_map, state,
                         self.app.settings.language, self.bank,
                         entity_drawer=self._draw_player, tr=self.app.tr)
+        if state.current_map == "town":
+            self.snow.draw(surface)
         self._draw_hud(surface)
         for to in self.toasts:
             to.draw(surface)
@@ -713,13 +723,14 @@ class GameplayScene(Scene):
         state = self.state
         tr = self.app.tr
         lang = self.app.settings.language
-        # ---- clock (top center)
+        # ---- clock (top center) — always the *present* time, which keeps
+        # flowing even while the player observes the past.
         now = self.world_now()
         clock_txt = fmt_clock(state.minutes)
         draw_text(surface, clock_txt, (DESIGN_W // 2, 14), size=44, kind="serif_bold",
                   color=(240, 240, 245), align="center", glow=(212, 175, 55),
                   glow_radius=2, shadow=False)
-        date_txt = fmt_date_short(now, lang).replace(" 2023", "")
+        date_txt = fmt_date_short(game_date(state.day), lang).replace(" 2023", "")
         day_txt = tr.t("hud.day", day=state.day, total=GAME_DAYS_TOTAL)
         draw_text(surface, f"{date_txt}  ·  {day_txt}", (DESIGN_W // 2, 66),
                   size=17, color=(190, 200, 220), align="center", outline=True, shadow=False)
@@ -734,7 +745,8 @@ class GameplayScene(Scene):
                       shadow=False)
         # ---- timeline badge (top right)
         if state.offset_min < 0:
-            badge = tr.t("hud.past_badge", date=fmt_date_short(now, lang), time=fmt_clock(state.minutes))
+            badge = tr.t("hud.past_badge", date=fmt_date_short(now, lang),
+                         time=fmt_clock(now.hour * 60 + now.minute))
             draw_text(surface, badge, (DESIGN_W - 18, 16), size=18, kind="sans_bold",
                       color=(255, 170, 150), align="right", outline=True, shadow=False)
             draw_text(surface, tr.t("tt.return_present") + " [Q]", (DESIGN_W - 18, 42),

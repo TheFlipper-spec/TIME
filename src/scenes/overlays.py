@@ -323,10 +323,6 @@ class NotebookScene(OverlayScene):
                     self.scroll = 0
                     play("click")
                     return
-            if event.button == 4:
-                self.scroll = max(0, self.scroll - 1)
-            elif event.button == 5:
-                self.scroll += 1
             # postcard click
             if self.tab == 2:
                 for pc_id, rect in self.pc_rects:
@@ -334,7 +330,10 @@ class NotebookScene(OverlayScene):
                         self.selected_postcard = pc_id
                         return
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button in (4, 5):
-            pass
+            if event.button == 4:
+                self.scroll = max(0, self.scroll - 1)
+            else:
+                self.scroll += 1
 
     def close(self) -> None:
         play("notebook")
@@ -459,7 +458,9 @@ class NotebookScene(OverlayScene):
                           color=(140, 150, 175), shadow=False)
             for tid, status in tasks:
                 label_key = f"notebook.task_{tid}"
-                label = tr.t(label_key) if label_key != f"notebook.task_{tid}" else tid
+                label = tr.t(label_key)
+                if label == label_key:      # no translation for this task id
+                    label = tid
                 status_txt = tr.t("notebook.task_done") if status == "done" \
                     else tr.t("notebook.task_active")
                 color = (140, 200, 140) if status == "done" else (230, 200, 120)
@@ -522,7 +523,7 @@ class PauseScene(OverlayScene):
         if gp:
             gp.autosave()
         play("back")
-        self.app.switch(MainMenuScene(self.app))
+        self.app.reset(MainMenuScene(self.app))
 
     def quit_game(self) -> None:
         gp = self.app.gameplay

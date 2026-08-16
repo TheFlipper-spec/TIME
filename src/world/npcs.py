@@ -124,6 +124,10 @@ def visible_npc_ids(state) -> list[str]:
            "w1", "w2", "w3"]
     if state.flags.get("nick_ran"):
         ids.remove("nick")
+    # Boris's cat wanders the park only while the "find the cat" task is active
+    # and disappears once Mike has picked it up.
+    if state.tasks.get("cat") == "active" and not state.flags.get("cat_carried"):
+        ids.append("cat")
     # EMIT walks the town only after his identity is known — and only in the
     # present: meeting him in the past would spoil everything.
     if state.plot_stage >= 4 and state.offset_min == 0 and not state.flags.get("chase_started"):

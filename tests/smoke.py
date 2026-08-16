@@ -787,6 +787,57 @@ def test_real_app_loop() -> None:
     app.pop()  # gameplay
 
 
+def test_regressions() -> None:
+    """Lock in fixes: spawn is walkable, dialogue un-pauses, the cat appears,
+    building exits land on walkable tiles, and notebook task labels translate.
+    """
+    from src.game.gamestate import GameState
+    from src.scenes.gameplay import GameplayScene
+    from src.scenes.screens import BriefingScene
+    from src.world.mapgen import DOORS
+    from src.world.npcs import visible_npc_ids
+
+    # 1) the player spawns on a walkable tile and can move
+    app = make_app()
+    st = GameState()
+    gp = GameplayScene(app, state=st, fresh=True)
+    app.push(gp)
+    close_briefing(app)
+    check("spawn tile walkable", not gp.world.is_solid("town", 10, 12))
+    app.input._down.add(pygame.K_s)
+    for _ in range(20):
+        gp.update(1 / 60)
+    check("player can move from spawn", st.pos[1] > 12 * 32 + 16)
+    app.input._down.discard(pygame.K_s)
+
+    # 2) closing a dialogue un-pauses the game (no soft-lock)
+    gp._talk("marta")
+    check("dialogue pauses gameplay", gp.paused)
+    app.top().close()
+    check("dialogue un-pauses gameplay", not gp.paused)
+
+    # 3) every building exit lands on a walkable tile
+    for tile in DOORS:
+        st.flags["last_door_tile"] = tile
+        gp._exit_to_town()
+        tx, ty = int(st.pos[0]) // 32, int(st.pos[1]) // 32
+        check(f"exit {tile} walkable", not gp.world.is_solid("town", tx, ty))
+
+    # 4) the cat only wanders while the task is active
+    st2 = GameState()
+    check("cat hidden before task", "cat" not in visible_npc_ids(st2))
+    st2.tasks["cat"] = "active"
+    check("cat visible during task", "cat" in visible_npc_ids(st2))
+    st2.flags["cat_carried"] = True
+    check("cat hidden after pickup", "cat" not in visible_npc_ids(st2))
+
+    # 5) notebook task labels translate (not raw ids)
+    tr = app.tr
+    label = tr.t("notebook.task_nick_clear")
+    check("task label translated", label != "notebook.task_nick_clear")
+    app.pop()
+
+
 if __name__ == "__main__":
     tests = [
         test_time_and_state, test_economy, test_i18n, test_saves,
@@ -794,6 +845,7 @@ if __name__ == "__main__":
         test_game_over_paths, test_scenes_render, test_day_cycle,
         test_menu_flow, test_mailbox_postcards, test_shop_and_bank,
         test_long_play_and_load, test_real_app_loop, test_npc_schedules,
+        test_regressions,
     ]
     for t in tests:
         print(f"\n=== {t.__name__} ===")

@@ -219,6 +219,8 @@ class GameState:
     def do_sleep(self, passed_out: bool = False) -> int:
         hours = 16 if passed_out else self.sleep_hours()
         self.fatigue = 3.0
+        # Sleep restores some health (documented in the player guide).
+        self.health = min(100.0, self.health + hours)
         self.stats["sleeps"] += 1
         if passed_out:
             self.stats["passed_out"] += 1
