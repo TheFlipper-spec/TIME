@@ -227,7 +227,7 @@ class GameOverScene(Scene):
     def to_menu(self) -> None:
         from .splash import MainMenuScene
         play("click")
-        self.app.switch(MainMenuScene(self.app))
+        self.app.reset(MainMenuScene(self.app))
 
     def to_load(self) -> None:
         from .saves_menu import SavesScene
@@ -361,7 +361,7 @@ class EndingScene(Scene):
     def to_menu(self) -> None:
         from .splash import MainMenuScene
         play("click")
-        self.app.switch(MainMenuScene(self.app))
+        self.app.reset(MainMenuScene(self.app))
 
     def handle_event(self, event: pygame.event.Event) -> None:
         if self.menu_btn.handle(event):

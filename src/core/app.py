@@ -85,6 +85,21 @@ class App:
             self.scenes.pop()
         self.push(scene, **kwargs)
 
+    def reset(self, scene: Scene, **kwargs) -> None:
+        """Clear the whole scene stack (running on_exit) and push one scene.
+
+        Used to return to the main menu: this guarantees no stale gameplay
+        scene lingers below the menu and keeps app.gameplay / autosave hooks
+        in a clean state.
+        """
+        while self.scenes:
+            s = self.scenes.pop()
+            try:
+                s.on_exit()
+            except Exception:
+                pass
+        self.push(scene, **kwargs)
+
     def top(self) -> Scene:
         return self.scenes[-1] if self.scenes else None  # type: ignore[return-value]
 
