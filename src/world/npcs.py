@@ -34,26 +34,34 @@ class NPC:
         return [w for w in self.schedule if w[1] == map_id]
 
     def pos_at(self, hour: float, map_id: str) -> tuple[float, float] | None:
-        """Interpolated position for the given hour, or None if not on this map."""
-        pts = self.waypoints_for(map_id)
+        """Position of the NPC at the given hour, or None if it is not on
+        this map. The schedule is a full-day loop; segments crossing between
+        maps switch at the midpoint."""
+        pts = sorted(self.schedule, key=lambda w: w[0])
         if not pts:
             return None
         if len(pts) == 1:
-            return float(pts[0][2]), float(pts[0][3])
-        pts.sort(key=lambda w: w[0])
-        # find segment
+            _, m, x, y = pts[0]
+            return (float(x), float(y)) if m == map_id else None
         seg = None
         for i in range(len(pts) - 1):
             if pts[i][0] <= hour < pts[i + 1][0]:
                 seg = (pts[i], pts[i + 1])
                 break
         if seg is None:
-            last = pts[-1]
-            return float(last[2]), float(last[3])
-        (h0, _, x0, y0), (h1, _, x1, y1) = seg
+            seg = (pts[-1], pts[0])          # wrap 24:00 -> 00:00
+        (h0, m0, x0, y0), (h1, m1, x1, y1) = seg
+        if h1 < h0:
+            h1 += 24
         t = (hour - h0) / max(1e-6, (h1 - h0))
         t = max(0.0, min(1.0, t))
-        return x0 + (x1 - x0) * t, y0 + (y1 - y0) * t
+        if m0 == map_id and m1 == map_id:
+            return x0 + (x1 - x0) * t, y0 + (y1 - y0) * t
+        if m0 == map_id:
+            return (float(x0), float(y0)) if t < 0.5 else None
+        if m1 == map_id:
+            return (float(x1), float(y1)) if t >= 0.5 else None
+        return None
 
 
 NPC_DATA: dict[str, NPC] = {
@@ -123,12 +131,14 @@ def visible_npc_ids(state) -> list[str]:
     return ids
 
 
-def npc_on_map(state, map_id: str) -> list[str]:
-    """NPC ids currently present on the given map."""
+def npc_on_map(state, map_id: str, hour: float | None = None) -> list[str]:
+    """NPC ids currently present on the given map (hour in 0..24)."""
+    if hour is None:
+        hour = state.minutes / 60.0
     out = []
     for nid in visible_npc_ids(state):
         npc = NPC_DATA[nid]
-        if npc.pos_at(state.minutes, map_id) is not None:
+        if npc.pos_at(hour, map_id) is not None:
             out.append(nid)
     return out
 

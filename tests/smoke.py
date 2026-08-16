@@ -694,6 +694,27 @@ def test_long_play_and_load() -> None:
     check("long play stable", True)
 
 
+def test_npc_schedules() -> None:
+    from src.world.npcs import NPC_DATA
+
+    marta = NPC_DATA["marta"]
+    check("marta 10h near bus stop", marta.pos_at(10, "town") is not None)
+    px, py = marta.pos_at(10, "town")
+    check("marta 10h position", abs(px - 55) < 1e-6 and abs(py - 44) < 1e-6,
+          f"({px},{py})")
+    px, py = marta.pos_at(19, "town")
+    check("marta 19h home", abs(px - 48) < 1e-6 and abs(py - 48) < 1e-6)
+    boris = NPC_DATA["boris"]
+    check("boris in shop at 12h", boris.pos_at(12, "shop") is not None)
+    check("boris not in town at 12h", boris.pos_at(12, "town") is None)
+    check("boris in town at 21h", boris.pos_at(21, "town") is not None)
+    check("boris not in shop at 21h", boris.pos_at(21, "shop") is None)
+    # EMIT patrol near the exit
+    emit = NPC_DATA["emit"]
+    px, py = emit.pos_at(6, "town")
+    check("emit patrol near exit", px > 85 and py < 46, f"({px},{py})")
+
+
 def test_real_app_loop() -> None:
     """The real App.run loop with posted SDL events: window scaling, event
     remapping, splash skip, menu click, intro, gameplay keys."""
@@ -772,7 +793,7 @@ if __name__ == "__main__":
         test_dialogue_turns, test_plot_and_news, test_gameplay_full_run,
         test_game_over_paths, test_scenes_render, test_day_cycle,
         test_menu_flow, test_mailbox_postcards, test_shop_and_bank,
-        test_long_play_and_load, test_real_app_loop,
+        test_long_play_and_load, test_real_app_loop, test_npc_schedules,
     ]
     for t in tests:
         print(f"\n=== {t.__name__} ===")

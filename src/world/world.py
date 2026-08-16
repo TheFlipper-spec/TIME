@@ -124,7 +124,7 @@ class World:
             self._draw_prop(surface, prop, px, py, bank)
 
         # npcs
-        for nid in npc_on_map(state, "town"):
+        for nid in npc_on_map(state, "town", hour):
             pos = NPC_DATA[nid].pos_at(hour, "town")
             if pos is None:
                 continue
@@ -175,8 +175,9 @@ class World:
             px, py = prop.x * TILE - cam_x, prop.y * TILE - cam_y
             self._draw_prop(surface, prop, px, py, bank)
         # npcs
-        for nid in npc_on_map(state, map_id):
-            pos = NPC_DATA[nid].pos_at(state.minutes, map_id)
+        hour = world_now.hour + world_now.minute / 60.0
+        for nid in npc_on_map(state, map_id, hour):
+            pos = NPC_DATA[nid].pos_at(hour, map_id)
             if pos is None:
                 continue
             sx, sy = int(pos[0] * TILE - cam_x), int(pos[1] * TILE - cam_y)

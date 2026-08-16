@@ -354,8 +354,9 @@ class GameplayScene(Scene):
             d = math.hypot(px - cx, py - cy)
             if d < INTERACTION_DIST * TILE:
                 items.append({"type": "prop", "prop": prop, "d": d})
-        for nid in npc_on_map(self.state, map_id):
-            pos = NPC_DATA[nid].pos_at(self.state.minutes, map_id)
+        hour = self.state.minutes / 60.0
+        for nid in npc_on_map(self.state, map_id, hour):
+            pos = NPC_DATA[nid].pos_at(hour, map_id)
             if pos is None:
                 continue
             cx, cy = pos[0] * TILE + TILE // 2, pos[1] * TILE + TILE // 2
@@ -658,7 +659,7 @@ class GameplayScene(Scene):
             return False
         if state.current_map != "town":
             return False
-        pos = NPC_DATA["emit"].pos_at(self.state.minutes, "town")
+        pos = NPC_DATA["emit"].pos_at(self.state.minutes / 60.0, "town")
         if pos is None:
             return False
         px, py = self._player_center()
