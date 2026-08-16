@@ -2,7 +2,14 @@
 
 **Детектив, в котором время — оружие.**
 
-Игра **FL1PPER**. Python + Pygame, полностью самодостаточная: графика и звук генерируются кодом, файлов с ассетами не нужно.
+Игра **FL1PPER**. Python + Pygame, полностью самодостаточная: графика и звук
+генерируются кодом, внешних ассетов не нужно.
+
+| Готовая сборка | Документация |
+|---|---|
+| 🪟 **Windows x64 (.exe):** `dist/TIME_v1.0.0_windows_x64.zip` — распаковать и запустить `TIME.exe` (Python 3.13 + pygame уже внутри) | [Руководство игрока](docs/GUIDE.md) |
+| 🐍 Из исходников: `pip install -r requirements.txt && python main.py` | [Разработчику](docs/DEVELOPER.md) |
+| 🛠 Сборка exe: `tools/build_windows.py` или `build_windows.bat` | [Сборка Windows exe](docs/BUILD_WINDOWS.md) · [История версий](docs/CHANGELOG.md) |
 
 ---
 
@@ -17,7 +24,7 @@ python main.py
 
 Или просто:
 
-- **Windows** — `run.bat`
+- **Windows** — `run.bat` (или готовый `dist/TIME_v1.0.0_windows_x64.zip`)
 - **Linux / macOS** — `run.sh`
 
 ## Управление
@@ -79,10 +86,20 @@ python main.py
   переменные окружения `YANDEX_API_KEY` / `YANDEX_IAM_TOKEN` + `YANDEX_FOLDER_ID`).
   Переводы кэшируются, повторно не запрашиваются.
 
+## Windows .exe
+
+Готовая портативная сборка — **`dist/TIME_v1.0.0_windows_x64.zip`**
+(CPython 3.13 embeddable + pygame, ничего устанавливать не нужно).
+Подробности и самостоятельная сборка (два способа) — в
+[BUILD_WINDOWS.md](docs/BUILD_WINDOWS.md).
+
 ## Структура проекта
 
 ```
 main.py                  — точка входа
+tools/build_windows.py   — сборка Windows-дистрибутива с валидацией
+build_windows.bat        — сборка .exe через PyInstaller (Windows)
+TIME.spec                — конфиг PyInstaller
 src/
   core/                  — окно, цикл, сцены, камера, ввод
   scenes/                — заставка, меню, геймплей, диалоги, новости…
@@ -94,6 +111,7 @@ src/
   saves.py               — сохранения
   settings.py            — настройки игрока
 assets/lang/             — словари переводов (ru, en)
+docs/                    — руководство, документация разработчика, сборка
 tests/smoke.py           — автотесты всей игры (headless)
 ```
 
